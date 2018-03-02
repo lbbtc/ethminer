@@ -4,11 +4,8 @@ using namespace std;
 using namespace dev;
 using namespace eth;
 
-void PoolClient::setConnection(string const & host, string const & port, string const & user, string const & pass)
+void PoolClient::setConnection(PoolConnection &conn)
 {
-	m_host = host;
-	m_port = port;
-	m_user = user;
-	m_pass = pass;
+	m_conn = conn;
 	m_connection_changed = true;
 }

@@ -12,10 +12,46 @@ namespace dev
 {
 	namespace eth
 	{
+		class PoolConnection
+		{
+		public:
+			typedef enum {
+				STRATUM = 0,
+				ETHPROXY,
+				ETHEREUMSTRATUM
+			} StratumProtocol;
+
+			PoolConnection() {};
+			PoolConnection(const string &host, const string &port, const string &user, const string &pass, const string &scheme, StratumProtocol proto)
+				: m_host(host), m_port(port), m_user(user), m_pass(pass), m_scheme(scheme), m_proto(proto) {};
+			string Host() const { return m_host; };
+			string Port() const { return m_port; };
+			string User() const { return m_user; };
+			string Pass() const { return m_pass; };
+			string Scheme() const { return m_scheme; };
+			StratumProtocol Proto() const { return m_proto; };
+			
+
+			void Host(string host) { m_host = host; };
+			void Port(string port) { m_port = port; };
+			void User(string user) { m_user = user; };
+			void Pass(string pass) { m_pass = pass; };
+			void Scheme(string scheme) {m_scheme = scheme; };
+			void Scheme(StratumProtocol proto) {m_proto = proto; };
+
+		private:
+		        string m_host;
+       			string m_port;
+			string m_user;
+			string m_pass;
+			string m_scheme;
+			StratumProtocol m_proto;
+		};
+
 		class PoolClient
 		{
 		public:
-			void setConnection(string const & host, string const & port = "", string const & user = "", string const & pass = "");
+			void setConnection(PoolConnection &conn);
 
 			virtual void connect() = 0;
 			virtual void disconnect() = 0;
@@ -39,10 +75,7 @@ namespace dev
 		protected:
 			bool m_authorized = false;
 			bool m_connected = false;
-			string m_host;
-			string m_port;
-			string m_user;
-			string m_pass;
+			PoolConnection m_conn;
 			bool m_connection_changed = false;
 
 			SolutionAccepted m_onSolutionAccepted;

@@ -182,7 +182,7 @@ public:
 		else if ((arg == "-SP" || arg == "--stratum-protocol") && i + 1 < argc)
 		{
 			try {
-				m_stratumProtocol = atoi(argv[++i]);
+				m_stratumProtocol = (PoolConnection::StratumProtocol)atoi(argv[++i]);
 			}
 			catch (...)
 			{
@@ -790,7 +790,7 @@ private:
 		PoolClient *client = nullptr;
 
 		if (mode == OperationMode::Stratum) {
-			client = new EthStratumClient(m_worktimeout, m_stratumProtocol, m_email, m_report_stratum_hashrate, m_stratumSecure);
+			client = new EthStratumClient(m_worktimeout, m_email, m_report_stratum_hashrate, m_stratumSecure);
 		}
 		else if (mode == OperationMode::Farm) {
 			client = new EthGetworkClient(m_farmRecheckPeriod);
@@ -815,12 +815,14 @@ private:
 
 		PoolManager mgr(client, f, m_minerType);
 		mgr.setReconnectTries(m_maxFarmRetries);
-		mgr.addConnection(m_farmURL, m_port, m_user, m_pass);
+		PoolConnection conn(m_farmURL, m_port, m_user, m_pass, "", m_stratumProtocol);
+		mgr.addConnection(conn);
 		if (!m_farmFailOverURL.empty()) {
 			if (!m_fuser.empty())
-				mgr.addConnection(m_farmFailOverURL, m_fport, m_fuser, m_fpass);
+				conn = PoolConnection(m_farmFailOverURL, m_fport, m_fuser, m_fpass, "", m_stratumProtocol);
 			else
-				mgr.addConnection(m_farmFailOverURL, m_fport, m_user, m_pass);
+				conn = PoolConnection(m_farmFailOverURL, m_fport, m_user, m_pass, "", m_stratumProtocol);
+			mgr.addConnection(conn);
 		}
 
 
@@ -905,14 +907,14 @@ private:
 #endif
 
 	bool m_report_stratum_hashrate = false;
-	int m_stratumProtocol = STRATUM_PROTOCOL_STRATUM;
+	PoolConnection::StratumProtocol m_stratumProtocol = PoolConnection::STRATUM;
 	string m_user;
 	string m_pass;
 	string m_port;
-	string m_fuser = "";
-	string m_fpass = "";
-	string m_email = "";
-	string m_fport = "";
+	string m_fuser;
+	string m_fpass;
+	string m_email;
+	string m_fport;
 
 #if ETH_DBUS
 	DBusInt dbusint;

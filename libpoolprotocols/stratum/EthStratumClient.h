@@ -30,7 +30,7 @@ enum class StratumSecure
 class EthStratumClient : public PoolClient
 {
 public:
-	EthStratumClient(int const & worktimeout, int const & protocol, string const & email, bool const & submitHashrate, StratumSecure const & secureMode);
+	EthStratumClient(int const & worktimeout, string const & email, bool const & submitHashrate, StratumSecure const & secureMode);
 	~EthStratumClient();
 
 	void connect();
@@ -56,9 +56,9 @@ private:
 	void readResponse(const boost::system::error_code& ec, std::size_t bytes_transferred);
 	void processReponse(Json::Value& responseObject);
 
-	cred_t * p_active;
-	cred_t m_primary;
-	cred_t m_failover;
+	PoolConnection * p_active;
+	PoolConnection m_primary;
+	PoolConnection m_failover;
 
 	string m_worker; // eth-proxy only;
 
@@ -89,7 +89,6 @@ private:
 
 	boost::asio::ip::tcp::resolver m_resolver;
 
-	int m_protocol;
 	string m_email;
 
 	double m_nextWorkDifficulty;
