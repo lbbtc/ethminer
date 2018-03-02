@@ -68,15 +68,14 @@ EthStratumClient::~EthStratumClient()
 
 void EthStratumClient::connect()
 {
-	m_primary = m_conn;
-	p_active = &m_primary;
+	m_connection = m_conn;
 
 	m_authorized = false;
 	m_connected.store(false, std::memory_order_relaxed);
 
-	tcp::resolver::query q(p_active->Host(), p_active->Port());
+	tcp::resolver::query q(m_connection.Host(), m_connection.Port());
 
-	//cnote << "Resolving stratum server " + p_active->host + ":" + p_active->port;
+	//cnote << "Resolving stratum server " + m_connection.host + ":" + m_connection.port;
 
 	if (m_secureMode != StratumSecure::NONE) {
 
@@ -181,7 +180,7 @@ void EthStratumClient::resolve_handler(const boost::system::error_code& ec, tcp:
 {
 	if (!ec)
 	{
-		//cnote << "Connecting to stratum server " + p_active->Host() + ":" + p_active->Port();
+		//cnote << "Connecting to stratum server " + m_connection.Host() + ":" + m_connection.Port();
 		tcp::resolver::iterator end;
 		async_connect(*m_socket, i, end, boost::bind(&EthStratumClient::connect_handler,
 						this, boost::asio::placeholders::error,
@@ -189,7 +188,7 @@ void EthStratumClient::resolve_handler(const boost::system::error_code& ec, tcp:
 	}
 	else
 	{
-		cwarn << "Could not resolve host " << p_active->Host() + ":" + p_active->Port() + ", " << ec.message();
+		cwarn << "Could not resolve host " << m_connection.Host() + ":" + m_connection.Port() + ", " << ec.message();
 		disconnect();
 	}
 }
@@ -204,7 +203,7 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 	{
 		m_connected.store(true, std::memory_order_relaxed);
 
-		//cnote << "Connected to stratum server " + i->host_name() + ":" + p_active->port;
+		//cnote << "Connected to stratum server " + i->host_name() + ":" + m_connection.port;
 		if (m_onConnected) {
 			m_onConnected();
 		}
@@ -235,16 +234,16 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 		string user;
 		size_t p;
 
-		switch (p_active->Proto()) {
-			case PoolConnection::STRATUM:
+		switch (m_connection.ProtoSpecific()) {
+			case EthStratumClient::STRATUM:
 				m_authorized = true;
 				os << "{\"id\": 1, \"method\": \"mining.subscribe\", \"params\": []}\n";
 				break;
-			case PoolConnection::ETHPROXY:
-				p = p_active->User().find_first_of(".");
-				user = p_active->User().substr(0, p);
-				if (p + 1 <= p_active->User().length())
-					m_worker = p_active->User().substr(p + 1);
+			case EthStratumClient::ETHPROXY:
+				p = m_connection.User().find_first_of(".");
+				user = m_connection.User().substr(0, p);
+				if (p + 1 <= m_connection.User().length())
+					m_worker = m_connection.User().substr(p + 1);
 				else
 					m_worker = "";
 
@@ -257,7 +256,7 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 					os << "{\"id\": 1, \"worker\":\"" << m_worker << "\", \"method\": \"eth_submitLogin\", \"params\": [\"" << user << "\", \"" << m_email << "\"]}\n";
 				}
 				break;
-			case PoolConnection::ETHEREUMSTRATUM:
+			case EthStratumClient::ETHEREUMSTRATUM:
 				m_authorized = true;
 				os << "{\"id\": 1, \"method\": \"mining.subscribe\", \"params\": [\"ethminer/" << ethminer_get_buildinfo()->project_version << "\",\"EthereumStratum/1.0.0\"]}\n";
 				break;
@@ -276,7 +275,7 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 	}
 	else
 	{
-		cwarn << "Could not connect to stratum server " + p_active->Host() + ":" + p_active->Port() + ", " + ec.message();
+		cwarn << "Could not connect to stratum server " + m_connection.Host() + ":" + m_connection.Port() + ", " + ec.message();
 		disconnect();
 	}
 
@@ -340,7 +339,7 @@ void EthStratumClient::readResponse(const boost::system::error_code& ec, std::si
 				cwarn << "Parse response failed: " + reader.getFormattedErrorMessages();
 			}
 		}
-		else if (p_active->Proto() != PoolConnection::ETHPROXY)
+		else if (m_connection.ProtoSpecific() != EthStratumClient::ETHPROXY)
 		{
 			cwarn << "Discarding incomplete response";
 		}
@@ -378,7 +377,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 	switch (id)
 	{
 		case 1:
-		if (p_active->Proto() == PoolConnection::ETHEREUMSTRATUM)
+		if (m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
 		{
 			m_nextWorkDifficulty = 1;
 			params = responseObject.get("result", Json::Value::null);
@@ -390,10 +389,10 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 
 			os << "{\"id\": 2, \"method\": \"mining.extranonce.subscribe\", \"params\": []}\n";
 		}
-		if (p_active->Proto() != PoolConnection::ETHPROXY)
+		if (m_connection.ProtoSpecific() != EthStratumClient::ETHPROXY)
 		{
 			cnote << "Subscribed to stratum server";
-			os << "{\"id\": 3, \"method\": \"mining.authorize\", \"params\": [\"" << p_active->User() << "\",\"" << p_active->Pass() << "\"]}\n";
+			os << "{\"id\": 3, \"method\": \"mining.authorize\", \"params\": [\"" << m_connection.User() << "\",\"" << m_connection.Pass() << "\"]}\n";
 		}
 		else
 		{
@@ -418,11 +417,11 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 		m_authorized = responseObject.get("result", Json::Value::null).asBool();
 		if (!m_authorized)
 		{
-			cnote << "Worker not authorized:" + p_active->User();
+			cnote << "Worker not authorized:" + m_connection.User();
 			disconnect();
 			return;
 		}
-		cnote << "Authorized worker " + p_active->User();
+		cnote << "Authorized worker " + m_connection.User();
 		break;
 	case 4:
 		{
@@ -443,7 +442,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 	default:
 		string method, workattr;
 		unsigned index;
-		if (p_active->Proto() != PoolConnection::ETHPROXY)
+		if (m_connection.ProtoSpecific() != EthStratumClient::ETHPROXY)
 		{
 			method = responseObject.get("method", "").asString();
 			workattr = "params";
@@ -464,7 +463,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 				string job = params.get((Json::Value::ArrayIndex)0, "").asString();
 				if (m_response_pending)
 					m_stale = true;
-				if (p_active->Proto() == PoolConnection::ETHEREUMSTRATUM)
+				if (m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
 				{
 					string sSeedHash = params.get((Json::Value::ArrayIndex)1, "").asString();
 					string sHeaderHash = params.get((Json::Value::ArrayIndex)2, "").asString();
@@ -482,7 +481,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 						m_current.startNonce = ethash_swap_u64(*((uint64_t*)m_extraNonce.data()));
 						m_current.exSizeBits = m_extraNonceHexSize * 4;
 						m_current.job_len = job.size();
-						if (p_active->Proto() == PoolConnection::ETHEREUMSTRATUM)
+						if (m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
 							job.resize(64, '0');
 						m_current.job = h256(job);
 
@@ -526,7 +525,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 				}
 			}
 		}
-		else if (method == "mining.set_difficulty" && p_active->Proto() == PoolConnection::ETHEREUMSTRATUM)
+		else if (method == "mining.set_difficulty" && m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
 		{
 			params = responseObject.get("params", Json::Value::null);
 			if (params.isArray())
@@ -536,7 +535,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 				cnote << "Difficulty set to "  << m_nextWorkDifficulty;
 			}
 		}
-		else if (method == "mining.set_extranonce" && p_active->Proto() == PoolConnection::ETHEREUMSTRATUM)
+		else if (method == "mining.set_extranonce" && m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
 		{
 			params = responseObject.get("params", Json::Value::null);
 			if (params.isArray())
@@ -602,22 +601,22 @@ void EthStratumClient::submitSolution(Solution solution) {
 
 	m_responsetimer.cancel();
 
-	switch (p_active->Proto()) {
-		case PoolConnection::STRATUM:
+	switch (m_connection.ProtoSpecific()) {
+		case EthStratumClient::STRATUM:
 			json = "{\"id\": 4, \"method\": \"mining.submit\", \"params\": [\"" +
-				p_active->User() + "\",\"" + solution.work.job.hex() + "\",\"0x" +
+				m_connection.User() + "\",\"" + solution.work.job.hex() + "\",\"0x" +
 				nonceHex + "\",\"0x" + solution.work.header.hex() + "\",\"0x" +
 				solution.mixHash.hex() + "\"]}\n";
 			break;
-		case PoolConnection::ETHPROXY:
+		case EthStratumClient::ETHPROXY:
 			json = "{\"id\": 4, \"worker\":\"" +
 				m_worker + "\", \"method\": \"eth_submitWork\", \"params\": [\"0x" +
 				nonceHex + "\",\"0x" + solution.work.header.hex() + "\",\"0x" +
 				solution.mixHash.hex() + "\"]}\n";
 			break;
-		case PoolConnection::ETHEREUMSTRATUM:
+		case EthStratumClient::ETHEREUMSTRATUM:
 			json = "{\"id\": 4, \"method\": \"mining.submit\", \"params\": [\"" +
-				p_active->User() + "\",\"" + solution.work.job.hex().substr(0, solution.work.job_len) + "\",\"" +
+				m_connection.User() + "\",\"" + solution.work.job.hex().substr(0, solution.work.job_len) + "\",\"" +
 				nonceHex.substr(m_extraNonceHexSize, 16 - m_extraNonceHexSize) + "\"]}\n";
 			break;
 	}

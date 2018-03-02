@@ -15,21 +15,15 @@ namespace dev
 		class PoolConnection
 		{
 		public:
-			typedef enum {
-				STRATUM = 0,
-				ETHPROXY,
-				ETHEREUMSTRATUM
-			} StratumProtocol;
-
 			PoolConnection() {};
-			PoolConnection(const string &host, const string &port, const string &user, const string &pass, const string &scheme, StratumProtocol proto)
-				: m_host(host), m_port(port), m_user(user), m_pass(pass), m_scheme(scheme), m_proto(proto) {};
+			PoolConnection(const string &host, const string &port, const string &user, const string &pass, const string &scheme, unsigned protoSpecific)
+				: m_host(host), m_port(port), m_user(user), m_pass(pass), m_scheme(scheme), m_protoSpecific(protoSpecific) {};
 			string Host() const { return m_host; };
 			string Port() const { return m_port; };
 			string User() const { return m_user; };
 			string Pass() const { return m_pass; };
 			string Scheme() const { return m_scheme; };
-			StratumProtocol Proto() const { return m_proto; };
+			unsigned ProtoSpecific() const { return m_protoSpecific; };
 			
 
 			void Host(string host) { m_host = host; };
@@ -37,7 +31,7 @@ namespace dev
 			void User(string user) { m_user = user; };
 			void Pass(string pass) { m_pass = pass; };
 			void Scheme(string scheme) {m_scheme = scheme; };
-			void Scheme(StratumProtocol proto) {m_proto = proto; };
+			void Scheme(unsigned protoSpecific) {m_protoSpecific = protoSpecific; };
 
 		private:
 		        string m_host;
@@ -45,7 +39,7 @@ namespace dev
 			string m_user;
 			string m_pass;
 			string m_scheme;
-			StratumProtocol m_proto;
+			unsigned m_protoSpecific; // Undefined. For protocol use.
 		};
 
 		class PoolClient

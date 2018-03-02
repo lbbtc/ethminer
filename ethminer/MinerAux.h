@@ -182,7 +182,7 @@ public:
 		else if ((arg == "-SP" || arg == "--stratum-protocol") && i + 1 < argc)
 		{
 			try {
-				m_stratumProtocol = (PoolConnection::StratumProtocol)atoi(argv[++i]);
+				m_stratumProtocol = (EthStratumClient::StratumProtocol)atoi(argv[++i]);
 			}
 			catch (...)
 			{
@@ -907,7 +907,7 @@ private:
 #endif
 
 	bool m_report_stratum_hashrate = false;
-	PoolConnection::StratumProtocol m_stratumProtocol = PoolConnection::STRATUM;
+	EthStratumClient::StratumProtocol m_stratumProtocol = EthStratumClient::STRATUM;
 	string m_user;
 	string m_pass;
 	string m_port;
