@@ -5,6 +5,7 @@
 
 #include <libethcore/Farm.h>
 #include <libethcore/Miner.h>
+#include <libpoolprotocols/PoolURI.h>
 
 using namespace std;
 

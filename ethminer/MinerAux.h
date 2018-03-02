@@ -112,24 +112,26 @@ public:
 		else if ((arg == "-FF" || arg == "-SF" || arg == "-FS" || arg == "--farm-failover" || arg == "--stratum-failover") && i + 1 < argc)
 		{
 			string url = argv[++i];
+			URI uri(url);
 
-			if (mode == OperationMode::Stratum)
+			if (uri.Host().length())
 			{
-				size_t p = url.find_last_of(":");
-				if (p > 0)
+				m_farmFailOverURL = uri.Host();
+				if (mode == OperationMode::Stratum)
 				{
-					m_farmFailOverURL = url.substr(0, p);
-					if (p + 1 <= url.length())
-						m_fport = url.substr(p + 1);
-				}
-				else
-				{
-					m_farmFailOverURL = url;
+					if (atoi(uri.Port().c_str()))
+						m_fport = uri.Port();
+					else
+					{
+						cerr << "Bad endpoint address: " << url << endl;
+						BOOST_THROW_EXCEPTION(BadArgument());
+					}
 				}
 			}
 			else
 			{
-				m_farmFailOverURL = url;
+				cerr << "Bad endpoint address: " << url << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
 			}
 		}
 		else if (arg == "--farm-recheck" && i + 1 < argc)
@@ -154,17 +156,19 @@ public:
 		else if ((arg == "-S" || arg == "--stratum") && i + 1 < argc)
 		{
 			mode = OperationMode::Stratum;
+
 			string url = string(argv[++i]);
-			size_t p = url.find_last_of(":");
-			if (p > 0)
+			URI uri(url);
+
+			if (uri.Host().length() && atoi(uri.Port().c_str()))
 			{
-				m_farmURL = url.substr(0, p);
-				if (p + 1 <= url.length())
-					m_port = url.substr(p+1);
+				m_farmURL = uri.Host();
+				m_port = uri.Port();
 			}
 			else
 			{
-				m_farmURL = url;
+				cerr << "Bad endpoint address: " << url << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
 			}
 		}
 		else if ((arg == "-O" || arg == "--userpass") && i + 1 < argc)
