@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <boost/asio/ip/address.hpp>
+
 #include <libethcore/Farm.h>
 #include <libethcore/Miner.h>
 #include <libpoolprotocols/PoolURI.h>
@@ -17,14 +19,15 @@ namespace dev
 		{
 		public:
 			PoolConnection() {};
-			PoolConnection(const string &host, const string &port, const string &user, const string &pass, const SecureLevel secLevel, unsigned protoSpecific)
-				: m_host(host), m_port(port), m_user(user), m_pass(pass), m_secLevel(secLevel), m_protoSpecific(protoSpecific) {};
+			PoolConnection(const string &host, const string &port, const string &user, const string &pass, const SecureLevel secLevel, unsigned version)
+				: m_host(host), m_port(port), m_user(user), m_pass(pass), m_secLevel(secLevel), m_version(version) {};
 			string Host() const { return m_host; };
 			string Port() const { return m_port; };
 			string User() const { return m_user; };
 			string Pass() const { return m_pass; };
 			SecureLevel SecLevel() const { return m_secLevel; };
-			unsigned ProtoSpecific() const { return m_protoSpecific; };
+			boost::asio::ip::address Address() const { return m_address; };
+			unsigned Version() const { return m_version; };
 			
 
 			void Host(string host) { m_host = host; };
@@ -32,15 +35,17 @@ namespace dev
 			void User(string user) { m_user = user; };
 			void Pass(string pass) { m_pass = pass; };
 			void SecLevel(SecureLevel secLevel) { m_secLevel = secLevel; };
-			void ProtoSpecific(unsigned protoSpecific) { m_protoSpecific = protoSpecific; };
+			void Address(boost::asio::ip::address address) { m_address = address; };
+			void Version(unsigned version) { m_version = version; };
 
 		private:
 		        string m_host;
        			string m_port;
 			string m_user;
 			string m_pass;
-			SecureLevel m_secLevel;
-			unsigned m_protoSpecific; // Undefined. For protocol use.
+			SecureLevel m_secLevel = SecureLevel::NONE;
+			boost::asio::ip::address m_address;
+			unsigned m_version = 0;
 		};
 
 		class PoolClient

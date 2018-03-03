@@ -18,9 +18,6 @@ typedef struct {
 } SchemeType;
 
 static map<string, SchemeType> s_schemes = {
-	{"stratum",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  0}},
-	{"stratum1",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  1}},
-	{"stratum2",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  2}},
 	{"stratum+tcp",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  0}},
 	{"stratum1+tcp",{ProtocolFamily::STRATUM, SecureLevel::NONE,  1}},
 	{"stratum2+tcp",{ProtocolFamily::STRATUM, SecureLevel::NONE,  2}},
@@ -30,10 +27,9 @@ static map<string, SchemeType> s_schemes = {
 	{"stratum+ssl",	{ProtocolFamily::STRATUM, SecureLevel::TLS12, 0}},
 	{"stratum1+ssl",{ProtocolFamily::STRATUM, SecureLevel::TLS12, 1}},
 	{"stratum2+ssl",{ProtocolFamily::STRATUM, SecureLevel::TLS12, 2}},
-	{"http",	{ProtocolFamily::GETWORK, SecureLevel::NONE,  0}},
-	{"https",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}},
-	{"http+tls",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}},
-	{"http+ssl",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}}
+	{"getwork+rpc",	{ProtocolFamily::GETWORK, SecureLevel::NONE,  0}},
+	{"getwork+ssl",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}},
+	{"getwork+tls",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}}
 };
 
 bool URI::KnownScheme()

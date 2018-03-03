@@ -156,8 +156,8 @@ void EthStratumClient::disconnect()
 		m_securesocket->shutdown(sec);
 	}
 
-	m_io_service.stop();
 	m_socket->close();
+	m_io_service.stop();
 
 	if (m_connection.SecLevel() != SecureLevel::NONE) {
 		delete m_securesocket;
@@ -232,7 +232,7 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 		string user;
 		size_t p;
 
-		switch (m_connection.ProtoSpecific()) {
+		switch (m_connection.Version()) {
 			case EthStratumClient::STRATUM:
 				m_authorized = true;
 				os << "{\"id\": 1, \"method\": \"mining.subscribe\", \"params\": []}\n";
@@ -337,7 +337,7 @@ void EthStratumClient::readResponse(const boost::system::error_code& ec, std::si
 				cwarn << "Parse response failed: " + reader.getFormattedErrorMessages();
 			}
 		}
-		else if (m_connection.ProtoSpecific() != EthStratumClient::ETHPROXY)
+		else if (m_connection.Version() != EthStratumClient::ETHPROXY)
 		{
 			cwarn << "Discarding incomplete response";
 		}
@@ -375,7 +375,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 	switch (id)
 	{
 		case 1:
-		if (m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
+		if (m_connection.Version() == EthStratumClient::ETHEREUMSTRATUM)
 		{
 			m_nextWorkDifficulty = 1;
 			params = responseObject.get("result", Json::Value::null);
@@ -387,7 +387,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 
 			os << "{\"id\": 2, \"method\": \"mining.extranonce.subscribe\", \"params\": []}\n";
 		}
-		if (m_connection.ProtoSpecific() != EthStratumClient::ETHPROXY)
+		if (m_connection.Version() != EthStratumClient::ETHPROXY)
 		{
 			cnote << "Subscribed to stratum server";
 			os << "{\"id\": 3, \"method\": \"mining.authorize\", \"params\": [\"" << m_connection.User() << "\",\"" << m_connection.Pass() << "\"]}\n";
@@ -440,7 +440,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 	default:
 		string method, workattr;
 		unsigned index;
-		if (m_connection.ProtoSpecific() != EthStratumClient::ETHPROXY)
+		if (m_connection.Version() != EthStratumClient::ETHPROXY)
 		{
 			method = responseObject.get("method", "").asString();
 			workattr = "params";
@@ -461,7 +461,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 				string job = params.get((Json::Value::ArrayIndex)0, "").asString();
 				if (m_response_pending)
 					m_stale = true;
-				if (m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
+				if (m_connection.Version() == EthStratumClient::ETHEREUMSTRATUM)
 				{
 					string sSeedHash = params.get((Json::Value::ArrayIndex)1, "").asString();
 					string sHeaderHash = params.get((Json::Value::ArrayIndex)2, "").asString();
@@ -479,7 +479,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 						m_current.startNonce = ethash_swap_u64(*((uint64_t*)m_extraNonce.data()));
 						m_current.exSizeBits = m_extraNonceHexSize * 4;
 						m_current.job_len = job.size();
-						if (m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
+						if (m_connection.Version() == EthStratumClient::ETHEREUMSTRATUM)
 							job.resize(64, '0');
 						m_current.job = h256(job);
 
@@ -523,7 +523,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 				}
 			}
 		}
-		else if (method == "mining.set_difficulty" && m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
+		else if (method == "mining.set_difficulty" && m_connection.Version() == EthStratumClient::ETHEREUMSTRATUM)
 		{
 			params = responseObject.get("params", Json::Value::null);
 			if (params.isArray())
@@ -533,7 +533,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 				cnote << "Difficulty set to "  << m_nextWorkDifficulty;
 			}
 		}
-		else if (method == "mining.set_extranonce" && m_connection.ProtoSpecific() == EthStratumClient::ETHEREUMSTRATUM)
+		else if (method == "mining.set_extranonce" && m_connection.Version() == EthStratumClient::ETHEREUMSTRATUM)
 		{
 			params = responseObject.get("params", Json::Value::null);
 			if (params.isArray())
@@ -599,7 +599,7 @@ void EthStratumClient::submitSolution(Solution solution) {
 
 	m_responsetimer.cancel();
 
-	switch (m_connection.ProtoSpecific()) {
+	switch (m_connection.Version()) {
 		case EthStratumClient::STRATUM:
 			json = "{\"id\": 4, \"method\": \"mining.submit\", \"params\": [\"" +
 				m_connection.User() + "\",\"" + solution.work.job.hex() + "\",\"0x" +

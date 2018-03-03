@@ -10,6 +10,9 @@ set(SOURCES
 hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
 
+hunter_add_package(CppNetlibUri)
+find_package(CppNetlibUri CONFIG REQUIRED)
+
 add_library(poolprotocols ${SOURCES})
-target_link_libraries(poolprotocols PRIVATE devcore ethminer-buildinfo libjson-rpc-cpp::client Boost::system jsoncpp_lib_static OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(poolprotocols PRIVATE devcore ethminer-buildinfo libjson-rpc-cpp::client Boost::system jsoncpp_lib_static OpenSSL::SSL OpenSSL::Crypto network-uri)
 target_include_directories(poolprotocols PRIVATE ..)
