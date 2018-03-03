@@ -17,13 +17,13 @@ namespace dev
 		{
 		public:
 			PoolConnection() {};
-			PoolConnection(const string &host, const string &port, const string &user, const string &pass, const string &scheme, unsigned protoSpecific)
-				: m_host(host), m_port(port), m_user(user), m_pass(pass), m_scheme(scheme), m_protoSpecific(protoSpecific) {};
+			PoolConnection(const string &host, const string &port, const string &user, const string &pass, const SecureLevel secLevel, unsigned protoSpecific)
+				: m_host(host), m_port(port), m_user(user), m_pass(pass), m_secLevel(secLevel), m_protoSpecific(protoSpecific) {};
 			string Host() const { return m_host; };
 			string Port() const { return m_port; };
 			string User() const { return m_user; };
 			string Pass() const { return m_pass; };
-			string Scheme() const { return m_scheme; };
+			SecureLevel SecLevel() const { return m_secLevel; };
 			unsigned ProtoSpecific() const { return m_protoSpecific; };
 			
 
@@ -31,15 +31,15 @@ namespace dev
 			void Port(string port) { m_port = port; };
 			void User(string user) { m_user = user; };
 			void Pass(string pass) { m_pass = pass; };
-			void Scheme(string scheme) {m_scheme = scheme; };
-			void Scheme(unsigned protoSpecific) {m_protoSpecific = protoSpecific; };
+			void SecLevel(SecureLevel secLevel) { m_secLevel = secLevel; };
+			void ProtoSpecific(unsigned protoSpecific) { m_protoSpecific = protoSpecific; };
 
 		private:
 		        string m_host;
        			string m_port;
 			string m_user;
 			string m_pass;
-			string m_scheme;
+			SecureLevel m_secLevel;
 			unsigned m_protoSpecific; // Undefined. For protocol use.
 		};
 

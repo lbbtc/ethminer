@@ -6,6 +6,9 @@
 namespace dev
 {
 
+enum class SecureLevel {NONE = 0, TLS12, TLS, ALLOW_SELFSIGNED};
+enum class ProtocolFamily {GETWORK = 0, STRATUM};
+
 class URI
 {
 public:
@@ -20,13 +23,11 @@ public:
 	std::string Host() const;
 	std::string Port() const;
 
-	enum class ProtocolFamily {GETWORK = 0, STRATUM};
-
 	bool KnownScheme();
 	static std::string KnownSchemes(ProtocolFamily family);
 	ProtocolFamily ProtoFamily();
 	unsigned ProtoVersion();
-	unsigned ProtoSecure();
+	SecureLevel ProtoSecureLevel();
 
 private:
 	void parse(const std::string &uri);

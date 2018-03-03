@@ -200,13 +200,13 @@ public:
 		else if (arg == "--stratum-ssl")
 		{
 			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
-			m_stratumSecure = StratumSecure::TLS12;
+			m_stratumSecure = SecureLevel::TLS12;
 			if ((i + 1 < argc) && (*argv[i + 1] != '-')) {
 				int secMode = atoi(argv[++i]);
 				if (secMode == 1)
-					m_stratumSecure = StratumSecure::TLS;
+					m_stratumSecure = SecureLevel::TLS;
 				if (secMode == 2)
-					m_stratumSecure = StratumSecure::ALLOW_SELFSIGNED;
+					m_stratumSecure = SecureLevel::ALLOW_SELFSIGNED;
 			}
 				
 		}
@@ -673,9 +673,9 @@ public:
 			<< "    -P URL Specify the URL of a pool endpoint. Can be specified once for the primary pool, then again for the failover pool." << endl
 			<< "        URL takes the form: scheme://hostname:port." << endl
 			<< "        for getwork use one of the following schemes:" << endl
-			<< "          " << URI::KnownSchemes(URI::ProtocolFamily::GETWORK) << endl
+			<< "          " << URI::KnownSchemes(ProtocolFamily::GETWORK) << endl
 			<< "        for stratum use one of the following schemes: "<< endl
-			<< "          " << URI::KnownSchemes(URI::ProtocolFamily::STRATUM) << endl
+			<< "          " << URI::KnownSchemes(ProtocolFamily::STRATUM) << endl
 			<< endl
 			<< "Benchmarking mode:" << endl
 			<< "    -M [<n>],--benchmark [<n>] Benchmark for mining and exit; Optionally specify block number to benchmark against specific DAG." << endl
@@ -812,7 +812,7 @@ private:
 		PoolClient *client = nullptr;
 
 		if (mode == OperationMode::Stratum) {
-			client = new EthStratumClient(m_worktimeout, m_email, m_report_stratum_hashrate, m_stratumSecure);
+			client = new EthStratumClient(m_worktimeout, m_email, m_report_stratum_hashrate);
 		}
 		else if (mode == OperationMode::Farm) {
 			client = new EthGetworkClient(m_farmRecheckPeriod);
@@ -837,13 +837,13 @@ private:
 
 		PoolManager mgr(client, f, m_minerType);
 		mgr.setReconnectTries(m_maxFarmRetries);
-		PoolConnection conn(m_farmURL, m_port, m_user, m_pass, "", m_stratumProtocol);
+		PoolConnection conn(m_farmURL, m_port, m_user, m_pass, m_stratumSecure, m_stratumProtocol);
 		mgr.addConnection(conn);
 		if (!m_farmFailOverURL.empty()) {
 			if (!m_fuser.empty())
-				conn = PoolConnection(m_farmFailOverURL, m_fport, m_fuser, m_fpass, "", m_stratumProtocol);
+				conn = PoolConnection(m_farmFailOverURL, m_fport, m_fuser, m_fpass, m_stratumSecure, m_stratumProtocol);
 			else
-				conn = PoolConnection(m_farmFailOverURL, m_fport, m_user, m_pass, "", m_stratumProtocol);
+				conn = PoolConnection(m_farmFailOverURL, m_fport, m_user, m_pass, m_stratumSecure, m_stratumProtocol);
 			mgr.addConnection(conn);
 		}
 
@@ -881,7 +881,7 @@ private:
 
 	/// Mining options
 	MinerType m_minerType = MinerType::Mixed;
-	StratumSecure m_stratumSecure = StratumSecure::NONE;
+	SecureLevel m_stratumSecure = SecureLevel::NONE;
 	unsigned m_openclPlatform = 0;
 	unsigned m_miningThreads = UINT_MAX;
 	bool m_shouldListDevices = false;

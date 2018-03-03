@@ -12,28 +12,28 @@ static void toLower(string &str)
 }
 
 typedef struct {
-	URI::ProtocolFamily family;
-	unsigned secure;
+	ProtocolFamily family;
+	SecureLevel secure;
 	unsigned version;
 } SchemeType;
 
 static map<string, SchemeType> s_schemes = {
-	{"stratum", {URI::ProtocolFamily::STRATUM, 0, 0}},
-	{"stratum1", {URI::ProtocolFamily::STRATUM, 0, 1}},
-	{"stratum2", {URI::ProtocolFamily::STRATUM, 0, 2}},
-	{"stratum+tcp", {URI::ProtocolFamily::STRATUM, 0, 0}},
-	{"stratum1+tcp", {URI::ProtocolFamily::STRATUM, 0, 1}},
-	{"stratum2+tcp", {URI::ProtocolFamily::STRATUM, 0, 2}},
-	{"stratum+tls", {URI::ProtocolFamily::STRATUM, 2, 0}},
-	{"stratum1+tls", {URI::ProtocolFamily::STRATUM, 2, 1}},
-	{"stratum2+tls", {URI::ProtocolFamily::STRATUM, 2, 2}},
-	{"stratum+ssl", {URI::ProtocolFamily::STRATUM, 2, 0}},
-	{"stratum1+ssl", {URI::ProtocolFamily::STRATUM, 2, 1}},
-	{"stratum2+ssl", {URI::ProtocolFamily::STRATUM, 2, 2}},
-	{"http", {URI::ProtocolFamily::GETWORK, 0, 0}},
-	{"https", {URI::ProtocolFamily::GETWORK, 2, 0}},
-	{"http+tls", {URI::ProtocolFamily::GETWORK, 2, 0}},
-	{"http+ssl", {URI::ProtocolFamily::GETWORK, 2, 0}}
+	{"stratum",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  0}},
+	{"stratum1",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  1}},
+	{"stratum2",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  2}},
+	{"stratum+tcp",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  0}},
+	{"stratum1+tcp",{ProtocolFamily::STRATUM, SecureLevel::NONE,  1}},
+	{"stratum2+tcp",{ProtocolFamily::STRATUM, SecureLevel::NONE,  2}},
+	{"stratum+tls",	{ProtocolFamily::STRATUM, SecureLevel::TLS12, 0}},
+	{"stratum1+tls",{ProtocolFamily::STRATUM, SecureLevel::TLS12, 1}},
+	{"stratum2+tls",{ProtocolFamily::STRATUM, SecureLevel::TLS12, 2}},
+	{"stratum+ssl",	{ProtocolFamily::STRATUM, SecureLevel::TLS12, 0}},
+	{"stratum1+ssl",{ProtocolFamily::STRATUM, SecureLevel::TLS12, 1}},
+	{"stratum2+ssl",{ProtocolFamily::STRATUM, SecureLevel::TLS12, 2}},
+	{"http",	{ProtocolFamily::GETWORK, SecureLevel::NONE,  0}},
+	{"https",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}},
+	{"http+tls",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}},
+	{"http+ssl",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}}
 };
 
 bool URI::KnownScheme()
@@ -41,7 +41,7 @@ bool URI::KnownScheme()
 	return s_schemes.find(m_scheme) != s_schemes.end();
 }
 
-URI::ProtocolFamily URI::ProtoFamily()
+ProtocolFamily URI::ProtoFamily()
 {
 	return s_schemes[m_scheme].family;
 }
@@ -51,7 +51,7 @@ unsigned URI::ProtoVersion()
 	return s_schemes[m_scheme].version;
 }
 
-unsigned URI::ProtoSecure()
+SecureLevel URI::ProtoSecureLevel()
 {
 	return s_schemes[m_scheme].secure;
 }

@@ -32,7 +32,7 @@ static void diffToTarget(uint32_t *target, double diff)
 }
 
 
-EthStratumClient::EthStratumClient(int const & worktimeout, string const & email, bool const & submitHashrate, StratumSecure const & secureMode) : PoolClient(),
+EthStratumClient::EthStratumClient(int const & worktimeout, string const & email, bool const & submitHashrate) : PoolClient(),
 	 m_socket(nullptr),
 	 m_securesocket(nullptr),
 	 m_worktimer(m_io_service),
@@ -47,8 +47,6 @@ EthStratumClient::EthStratumClient(int const & worktimeout, string const & email
 
 	m_submit_hashrate = submitHashrate;
 	m_submit_hashrate_id = h256::random().hex();
-
-	m_secureMode = secureMode;
 }
 
 EthStratumClient::~EthStratumClient()
@@ -56,7 +54,7 @@ EthStratumClient::~EthStratumClient()
 	m_io_service.stop();
 	m_serviceThread.join();
 
-	if (m_secureMode != StratumSecure::NONE) {
+	if (m_connection.SecLevel() != SecureLevel::NONE) {
 		if (m_securesocket) 
 			delete m_securesocket;
 	}
@@ -77,17 +75,17 @@ void EthStratumClient::connect()
 
 	//cnote << "Resolving stratum server " + m_connection.host + ":" + m_connection.port;
 
-	if (m_secureMode != StratumSecure::NONE) {
+	if (m_connection.SecLevel() != SecureLevel::NONE) {
 
 		boost::asio::ssl::context::method method = boost::asio::ssl::context::tls;
-		if (m_secureMode == StratumSecure::TLS12)
+		if (m_connection.SecLevel() == SecureLevel::TLS12)
 			method = boost::asio::ssl::context::tlsv12;
 
 		boost::asio::ssl::context ctx(method);
 		m_securesocket = new boost::asio::ssl::stream<boost::asio::ip::tcp::socket>(m_io_service, ctx);
 		m_socket = &m_securesocket->next_layer();
 
-		if (m_secureMode != StratumSecure::ALLOW_SELFSIGNED) {
+		if (m_connection.SecLevel() != SecureLevel::ALLOW_SELFSIGNED) {
 			m_securesocket->set_verify_mode(boost::asio::ssl::verify_peer);
 
 #ifdef _WIN32
@@ -153,7 +151,7 @@ void EthStratumClient::disconnect()
 	m_responsetimer.cancel();
 	m_response_pending = false;
 
-	if (m_secureMode != StratumSecure::NONE) {
+	if (m_connection.SecLevel() != SecureLevel::NONE) {
 		boost::system::error_code sec;
 		m_securesocket->shutdown(sec);
 	}
@@ -161,7 +159,7 @@ void EthStratumClient::disconnect()
 	m_io_service.stop();
 	m_socket->close();
 
-	if (m_secureMode != StratumSecure::NONE) {
+	if (m_connection.SecLevel() != SecureLevel::NONE) {
 		delete m_securesocket;
 	}
 	else {
@@ -208,7 +206,7 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 			m_onConnected();
 		}
 
-		if (m_secureMode != StratumSecure::NONE) {
+		if (m_connection.SecLevel() != SecureLevel::NONE) {
 			boost::system::error_code hec;
 			m_securesocket->handshake(boost::asio::ssl::stream_base::client, hec);
 			if (hec) {
@@ -262,7 +260,7 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 				break;
 		}
 
-		if (m_secureMode != StratumSecure::NONE) {
+		if (m_connection.SecLevel() != SecureLevel::NONE) {
 			async_write(*m_securesocket, m_requestBuffer,
 				boost::bind(&EthStratumClient::handleResponse, this,
 					boost::asio::placeholders::error));
@@ -284,7 +282,7 @@ void EthStratumClient::connect_handler(const boost::system::error_code& ec, tcp:
 void EthStratumClient::readline() {
 	x_pending.lock();
 	if (m_pending == 0) {
-		if (m_secureMode != StratumSecure::NONE) {
+		if (m_connection.SecLevel() != SecureLevel::NONE) {
 			async_read_until(*m_securesocket, m_responseBuffer, "\n",
 				boost::bind(&EthStratumClient::readResponse, this,
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
@@ -399,7 +397,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 			m_authorized = true;
 			os << "{\"id\": 5, \"method\": \"eth_getWork\", \"params\": []}\n"; // not strictly required but it does speed up initialization
 		}
-		if (m_secureMode != StratumSecure::NONE) {
+		if (m_connection.SecLevel() != SecureLevel::NONE) {
 			async_write(*m_securesocket, m_requestBuffer,
 				boost::bind(&EthStratumClient::handleResponse, this,
 					boost::asio::placeholders::error));
@@ -547,7 +545,7 @@ void EthStratumClient::processReponse(Json::Value& responseObject)
 		else if (method == "client.get_version")
 		{
 			os << "{\"error\": null, \"id\" : " << id << ", \"result\" : \"" << ethminer_get_buildinfo()->project_version << "\"}\n";
-			if (m_secureMode != StratumSecure::NONE) {
+			if (m_connection.SecLevel() != SecureLevel::NONE) {
 				async_write(*m_securesocket, m_requestBuffer,
 					boost::bind(&EthStratumClient::handleResponse, this,
 						boost::asio::placeholders::error));
@@ -586,7 +584,7 @@ void EthStratumClient::submitHashrate(string const & rate) {
 	string json = "{\"id\": 6, \"jsonrpc\":\"2.0\", \"method\": \"eth_submitHashrate\", \"params\": [\"" + rate + "\",\"0x" + this->m_submit_hashrate_id + "\"]}\n";
 	std::ostream os(&m_requestBuffer);
 	os << json;
-	if (m_secureMode != StratumSecure::NONE) {
+	if (m_connection.SecLevel() != SecureLevel::NONE) {
 		write(*m_securesocket, m_requestBuffer);
 	}
 	else {
@@ -623,7 +621,7 @@ void EthStratumClient::submitSolution(Solution solution) {
 	std::ostream os(&m_requestBuffer);
 	os << json;
 	m_stale = solution.stale;
-	if (m_secureMode != StratumSecure::NONE) {
+	if (m_connection.SecLevel() != SecureLevel::NONE) {
 		async_write(*m_securesocket, m_requestBuffer,
 			boost::bind(&EthStratumClient::handleResponse, this,
 				boost::asio::placeholders::error));
