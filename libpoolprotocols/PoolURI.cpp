@@ -117,6 +117,8 @@ string URI::Host() const
 	ss << m_uri.host();
 	std::string s(ss.str());
 	trim(s);
+	if (s == "--")
+		return "";
 	return s;
 }
 
@@ -126,6 +128,8 @@ string URI::Port() const
 	ss << m_uri.port();
 	std::string s(ss.str());
 	trim(s);
+	if (s == "--")
+		return "0";
 	return s;
 }
 
@@ -135,6 +139,8 @@ string URI::User() const
 	ss << m_uri.user_info();
 	std::string s(ss.str());
 	trim(s);
+	if (s == "--")
+		return "";
 	size_t f = s.find(":");
 	if (f == std::string::npos)
 		return s;
@@ -147,6 +153,8 @@ string URI::Pswd() const
 	ss << m_uri.user_info();
 	std::string s(ss.str());
 	trim(s);
+	if (s == "--")
+		return "";
 	size_t f = s.find(":");
 	if (f == std::string::npos)
 		return "";
