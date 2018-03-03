@@ -32,7 +32,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/optional.hpp>
-#include <network/uri.hpp>
 
 #include <libethcore/Exceptions.h>
 #include <libdevcore/SHA3.h>

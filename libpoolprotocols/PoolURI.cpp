@@ -1,15 +1,9 @@
-#include <libpoolprotocols/PoolURI.h>
 #include <map>
+#include <boost/optional/optional_io.hpp>
+#include <libpoolprotocols/PoolURI.h>
 
 using namespace dev;
 using namespace std;
-
-static void toLower(string &str)
-{
-	string::iterator end = str.end();
-	for (string::iterator it = str.begin(); it != end; it++)
-		*it = tolower(*it);
-}
 
 typedef struct {
 	ProtocolFamily family;
@@ -32,63 +26,113 @@ static map<string, SchemeType> s_schemes = {
 	{"getwork+tls",	{ProtocolFamily::GETWORK, SecureLevel::TLS12, 0}}
 };
 
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
+
+URI::URI(const std::string uri)
+{
+	std::string u = uri;
+	if (u.find("://") == std::string::npos)
+		u = std::string("notspecified://") + u;
+	m_uri = network::uri(u);
+}
+
 bool URI::KnownScheme()
 {
-	return s_schemes.find(m_scheme) != s_schemes.end();
+	stringstream ss;
+	ss << m_uri.scheme();
+	std::string s = ss.str();
+	trim(s);
+	return s_schemes.find(s) != s_schemes.end();
 }
 
 ProtocolFamily URI::ProtoFamily()
 {
-	return s_schemes[m_scheme].family;
+	stringstream ss;
+	ss << m_uri.scheme();
+	std::string s = ss.str();
+	trim(s);
+	return s_schemes[s].family;
 }
 
 unsigned URI::ProtoVersion()
 {
-	return s_schemes[m_scheme].version;
+	stringstream ss;
+	ss << m_uri.scheme();
+	std::string s = ss.str();
+	trim(s);
+	return s_schemes[s].version;
 }
 
 SecureLevel URI::ProtoSecureLevel()
 {
-	return s_schemes[m_scheme].secure;
+	stringstream ss;
+	ss << m_uri.scheme();
+	std::string s = ss.str();
+	trim(s);
+	return s_schemes[s].secure;
 }
 
 string URI::KnownSchemes(ProtocolFamily family)
 {
-	string schemes;
+	std::string schemes;
 	for(const auto&s : s_schemes)
 		if (s.second.family == family)
 			schemes += s.first + " ";
+	trim(schemes);
 	return schemes;
 }
 
-void URI::parse(const string &uri)
+string URI::Scheme() const
 {
-	m_scheme.clear();
-	m_host.clear();
-	m_port.clear();
+	stringstream ss;
+	ss << m_uri.scheme();
+	std::string s(ss.str());
+	trim(s);
+	return s;
+}
 
-	string u = uri;
-	toLower(u);
+string URI::Host() const
+{
+	stringstream ss;
+	ss << m_uri.host();
+	std::string s(ss.str());
+	trim(s);
+	return s;
+}
 
-	size_t pos = u.find("://");
-	if (pos != string::npos) {
-		if (pos < 3)
-			return;
-		m_scheme = u.substr(0, pos);
-		u = u.substr(pos + 3);
-	}
+string URI::Port() const
+{
+	stringstream ss;
+	ss << m_uri.port();
+	std::string s(ss.str());
+	trim(s);
+	return s;
+}
 
-	pos = u.find(":");
-	if (pos != string::npos) {
-		if (pos < 1)
-			return;
-		m_host = u.substr(0, pos);
-		u = u.substr(pos + 1);
-	}
-	else {
-		m_host = u;
-		return;
-	}
-	m_port = u;
+string URI::UserInfo() const
+{
+	stringstream ss;
+	ss << m_uri.user_info();
+	std::string s(ss.str());
+	trim(s);
+	return s;
 }
 
