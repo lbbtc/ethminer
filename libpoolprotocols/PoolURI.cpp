@@ -46,6 +46,8 @@ static inline void trim(std::string &s) {
     rtrim(s);
 }
 
+URI::URI() {}
+
 URI::URI(const std::string uri)
 {
 	std::string u = uri;
@@ -127,12 +129,27 @@ string URI::Port() const
 	return s;
 }
 
-string URI::UserInfo() const
+string URI::User() const
 {
 	stringstream ss;
 	ss << m_uri.user_info();
 	std::string s(ss.str());
 	trim(s);
-	return s;
+	size_t f = s.find(":");
+	if (f == std::string::npos)
+		return s;
+	return s.substr(0, f);
 }
 
+string URI::Pswd() const
+{
+	stringstream ss;
+	ss << m_uri.user_info();
+	std::string s(ss.str());
+	trim(s);
+	size_t f = s.find(":");
+	if (f == std::string::npos)
+		return "";
+	return s.substr(f + 1);
+	return s;
+}

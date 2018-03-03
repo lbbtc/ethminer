@@ -113,7 +113,15 @@ public:
 		{
 			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
 			string url = argv[++i];
-			URI uri(url);
+			URI uri;
+			try {
+				uri = url;
+			}
+			catch (...)
+			{
+				cerr << "Bad endpoint address: " << url << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
+			}
 
 			if (uri.Host().length())
 			{
@@ -160,7 +168,15 @@ public:
 			mode = OperationMode::Stratum;
 
 			string url = string(argv[++i]);
-			URI uri(url);
+			URI uri;
+			try {
+				uri = url;
+			}
+			catch (...)
+			{
+				cerr << "Bad endpoint address: " << url << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
+			}
 
 			if (uri.Host().length() && atoi(uri.Port().c_str()))
 			{
