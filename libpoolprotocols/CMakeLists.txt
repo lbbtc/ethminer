@@ -1,5 +1,5 @@
 set(SOURCES
-	PoolURI.h
+	PoolURI.cpp PoolURI.h
 	PoolClient.h PoolClient.cpp
 	PoolManager.h PoolManager.cpp
 	testing/SimulateClient.h testing/SimulateClient.cpp

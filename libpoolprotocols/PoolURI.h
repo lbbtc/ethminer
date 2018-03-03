@@ -20,44 +20,16 @@ public:
 	std::string Host() const;
 	std::string Port() const;
 
+	enum class ProtocolFamily {GETWORK = 0, STRATUM};
+
+	bool KnownScheme();
+	static std::string KnownSchemes(ProtocolFamily family);
+	ProtocolFamily ProtoFamily();
+	unsigned ProtoVersion();
+	unsigned ProtoSecure();
+
 private:
-	void toLower(std::string &str)
-	{
-		std::string::iterator end = str.end();
-		for (std::string::iterator it = str.begin(); it != end; it++)
-			*it = tolower(*it);
-	}
-
-	void parse(const std::string &uri)
-	{
-		m_scheme.clear();
-		m_host.clear();
-		m_port.clear();
-
-		std::string u = uri;
-		toLower(u);
-
-		size_t pos = u.find("://");
-		if (pos != std::string::npos) {
-			if (pos < 3)
-				return;
-			m_scheme = u.substr(0, pos);
-			u = u.substr(pos + 3);
-		}
-
-		pos = u.find(":");
-		if (pos != std::string::npos) {
-			if (pos < 1)
-				return;
-			m_host = u.substr(0, pos);
-			u = u.substr(pos + 1);
-		}
-		else {
-			m_host = u;
-			return;
-		}
-		m_port = u;
-	}
+	void parse(const std::string &uri);
 
 	std::string    m_scheme;
 	std::string    m_host;

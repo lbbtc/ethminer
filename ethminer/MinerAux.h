@@ -111,6 +111,7 @@ public:
 		}
 		else if ((arg == "-FF" || arg == "-SF" || arg == "-FS" || arg == "--farm-failover" || arg == "--stratum-failover") && i + 1 < argc)
 		{
+			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
 			string url = argv[++i];
 			URI uri(url);
 
@@ -155,6 +156,7 @@ public:
 			}
 		else if ((arg == "-S" || arg == "--stratum") && i + 1 < argc)
 		{
+			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
 			mode = OperationMode::Stratum;
 
 			string url = string(argv[++i]);
@@ -185,6 +187,7 @@ public:
 		}
 		else if ((arg == "-SP" || arg == "--stratum-protocol") && i + 1 < argc)
 		{
+			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
 			try {
 				m_stratumProtocol = (EthStratumClient::StratumProtocol)atoi(argv[++i]);
 			}
@@ -196,6 +199,7 @@ public:
 		}
 		else if (arg == "--stratum-ssl")
 		{
+			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
 			m_stratumSecure = StratumSecure::TLS12;
 			if ((i + 1 < argc) && (*argv[i + 1] != '-')) {
 				int secMode = atoi(argv[++i]);
@@ -235,6 +239,7 @@ public:
 		}
 		else if ((arg == "-o" || arg == "--port") && i + 1 < argc)
 		{
+			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
 			m_port = string(argv[++i]);
 		}
 		else if ((arg == "-fu" || arg == "--failover-user") && i + 1 < argc)
@@ -247,6 +252,7 @@ public:
 		}
 		else if ((arg == "-fo" || arg == "--failover-port") && i + 1 < argc)
 		{
+			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
 			m_fport = string(argv[++i]);
 		}
 		else if ((arg == "--work-timeout") && i + 1 < argc)
@@ -258,13 +264,15 @@ public:
 			m_report_stratum_hashrate = true;
 		}
 		else if (arg == "--display-interval" && i + 1 < argc)
-			try {
-			m_displayInterval = stol(argv[++i]);
-		}
-		catch (...)
 		{
-			cerr << "Bad " << arg << " option: " << argv[i] << endl;
-			BOOST_THROW_EXCEPTION(BadArgument());
+			try {
+				m_displayInterval = stol(argv[++i]);
+			}
+			catch (...)
+			{
+				cerr << "Bad " << arg << " option: " << argv[i] << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
+			}
 		}
 		else if (arg == "-HWMON")
 		{
@@ -275,6 +283,10 @@ public:
 		else if ((arg == "--exit"))
 		{
 			m_exit = true;
+		}
+		else if ((arg == "-P") && (i + 1 < argc))
+		{
+			cerr << "Not yet implemented" << endl;
 		}
 #if API_CORE
 		else if ((arg == "--api-port") && i + 1 < argc)
@@ -658,6 +670,12 @@ public:
 			<< "    --exit Stops the miner whenever an error is encountered" << endl
 			<< "    -SE, --stratum-email <s> Email address used in eth-proxy (optional)" << endl
 			<< "    --farm-recheck <n>  Leave n ms between checks for changed work (default: 500). When using stratum, use a high value (i.e. 2000) to get more stable hashrate output" << endl
+			<< "    -P URL Specify the URL of a pool endpoint. Can be specified once for the primary pool, then again for the failover pool." << endl
+			<< "        URL takes the form: scheme://hostname:port." << endl
+			<< "        for getwork use one of the following schemes:" << endl
+			<< "          " << URI::KnownSchemes(URI::ProtocolFamily::GETWORK) << endl
+			<< "        for stratum use one of the following schemes: "<< endl
+			<< "          " << URI::KnownSchemes(URI::ProtocolFamily::STRATUM) << endl
 			<< endl
 			<< "Benchmarking mode:" << endl
 			<< "    -M [<n>],--benchmark [<n>] Benchmark for mining and exit; Optionally specify block number to benchmark against specific DAG." << endl
