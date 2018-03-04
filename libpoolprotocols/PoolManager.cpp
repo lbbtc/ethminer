@@ -129,8 +129,7 @@ void PoolManager::addConnection(PoolConnection &conn)
 	if (conn.Host().empty())
 		return;
 
-	PoolConnection connection(conn);
-	m_connections.push_back(connection);
+	m_connections.push_back(conn);
 
 	if (m_connections.size() == 1) {
 		p_client->setConnection(conn);
