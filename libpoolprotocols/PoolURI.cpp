@@ -57,36 +57,28 @@ URI::URI(const std::string uri)
 
 bool URI::KnownScheme()
 {
-	std::stringstream ss;
-	ss << m_uri.scheme();
-	std::string s = ss.str();
+	std::string s(*m_uri.scheme());
 	trim(s);
 	return s_schemes.find(s) != s_schemes.end();
 }
 
 ProtocolFamily URI::ProtoFamily()
 {
-	std::stringstream ss;
-	ss << m_uri.scheme();
-	std::string s = ss.str();
+	std::string s(*m_uri.scheme());
 	trim(s);
 	return s_schemes[s].family;
 }
 
 unsigned URI::ProtoVersion()
 {
-	std::stringstream ss;
-	ss << m_uri.scheme();
-	std::string s = ss.str();
+	std::string s(*m_uri.scheme());
 	trim(s);
 	return s_schemes[s].version;
 }
 
 SecureLevel URI::ProtoSecureLevel()
 {
-	std::stringstream ss;
-	ss << m_uri.scheme();
-	std::string s = ss.str();
+	std::string s(*m_uri.scheme());
 	trim(s);
 	return s_schemes[s].secure;
 }
@@ -103,18 +95,14 @@ std::string URI::KnownSchemes(ProtocolFamily family)
 
 std::string URI::Scheme() const
 {
-	std::stringstream ss;
-	ss << m_uri.scheme();
-	std::string s(ss.str());
+	std::string s(*m_uri.scheme());
 	trim(s);
 	return s;
 }
 
 std::string URI::Host() const
 {
-	std::stringstream ss;
-	ss << m_uri.host();
-	std::string s(ss.str());
+	std::string s(*m_uri.host());
 	trim(s);
 	if (s == "--")
 		return "";
@@ -123,9 +111,7 @@ std::string URI::Host() const
 
 std::string URI::Port() const
 {
-	std::stringstream ss;
-	ss << m_uri.port();
-	std::string s(ss.str());
+	std::string s(*m_uri.port());
 	trim(s);
 	if (s == "--")
 		return "0";
@@ -135,8 +121,7 @@ std::string URI::Port() const
 std::string URI::User() const
 {
 	std::stringstream ss;
-	ss << m_uri.user_info();
-	std::string s(ss.str());
+	std::string s(*m_uri.user_info());
 	trim(s);
 	if (s == "--")
 		return "";
@@ -148,9 +133,7 @@ std::string URI::User() const
 
 std::string URI::Pswd() const
 {
-	std::stringstream ss;
-	ss << m_uri.user_info();
-	std::string s(ss.str());
+	std::string s(*m_uri.user_info());
 	trim(s);
 	if (s == "--")
 		return "";

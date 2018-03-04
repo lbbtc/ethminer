@@ -92,7 +92,7 @@ public:
 		Stratum
 	};
 
-	MinerCLI(OperationMode _mode = OperationMode::None): mode(_mode) {m_endpoints.reserve(k_max_endpoints);}
+	MinerCLI() {m_endpoints.reserve(k_max_endpoints);}
 
 	static void signalHandler(int sig)
 	{
@@ -105,7 +105,8 @@ public:
 		string arg = argv[i];
 		if ((arg == "-F" || arg == "--farm") && i + 1 < argc)
 		{
-			mode = OperationMode::Farm;
+			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
+			m_mode = OperationMode::Farm;
 			m_endpoints[k_primary_ep_ix].Host(argv[++i]);
 		}
 		else if ((arg == "-FF" || arg == "-SF" || arg == "-FS" || arg == "--farm-failover" || arg == "--stratum-failover") && i + 1 < argc)
@@ -125,7 +126,7 @@ public:
 			if (uri.Host().length())
 			{
 				m_endpoints[k_secondary_ep_ix].Host(uri.Host());
-				if (mode == OperationMode::Stratum)
+				if (m_mode == OperationMode::Stratum)
 				{
 					if (atoi(uri.Port().c_str()))
 						m_endpoints[k_secondary_ep_ix].Port(uri.Port());
@@ -164,7 +165,7 @@ public:
 		else if ((arg == "-S" || arg == "--stratum") && i + 1 < argc)
 		{
 			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
-			mode = OperationMode::Stratum;
+			m_mode = OperationMode::Stratum;
 
 			string url = string(argv[++i]);
 			URI uri;
@@ -303,7 +304,44 @@ public:
 		}
 		else if ((arg == "-P") && (i + 1 < argc))
 		{
-			cerr << "Not yet implemented" << endl;
+			string url = argv[++i];
+			URI uri;
+			try {
+				uri = url;
+			}
+			catch (...) {
+				cerr << "Bad endpoint address: " << url << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
+			}
+			if (!uri.KnownScheme())
+			{
+				cerr << "Unknown URI scheme " << uri.Scheme() << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
+			}
+			if (m_ep_ix >= k_max_endpoints)
+			{
+				cerr << "Too many endpoints. Maximum is " << k_max_endpoints << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
+			}
+			m_endpoints[m_ep_ix] = PoolConnection(uri.Host(), uri.Port(), uri.User(), uri.Pswd(), uri.ProtoSecureLevel(), uri.ProtoVersion());
+			
+			OperationMode mode = OperationMode::None;
+			switch (uri.ProtoFamily())
+			{
+			case ProtocolFamily::STRATUM:
+				mode = OperationMode::Stratum;
+				break;
+			case ProtocolFamily::GETWORK:
+				mode = OperationMode::Farm;
+				break;
+			}
+			if ((m_mode != OperationMode::None) && (m_mode != mode))
+			{
+				cerr << "Mixed stratum and getwork enpoints not supported." << endl;
+				BOOST_THROW_EXCEPTION(BadArgument());
+			}
+			m_mode = mode;
+			m_ep_ix++;
 		}
 #if API_CORE
 		else if ((arg == "--api-port") && i + 1 < argc)
@@ -514,7 +552,7 @@ public:
 		}
 		else if (arg == "-M" || arg == "--benchmark")
 		{
-			mode = OperationMode::Benchmark;
+			m_mode = OperationMode::Benchmark;
 			if (i + 1 < argc)
 			{
 				string m = boost::to_lower_copy(string(argv[++i]));
@@ -535,7 +573,7 @@ public:
 			}
 		}
 		else if (arg == "-Z" || arg == "--simulation") {
-			mode = OperationMode::Simulation;
+			m_mode = OperationMode::Simulation;
 			if (i + 1 < argc)
 			{
 				string m = boost::to_lower_copy(string(argv[++i]));
@@ -654,9 +692,9 @@ public:
 		signal(SIGINT, MinerCLI::signalHandler);
 		signal(SIGTERM, MinerCLI::signalHandler);
 
-		if (mode == OperationMode::Benchmark)
+		if (m_mode == OperationMode::Benchmark)
 			doBenchmark(m_minerType, m_benchmarkWarmup, m_benchmarkTrial, m_benchmarkTrials);
-		else if (mode == OperationMode::Farm || mode == OperationMode::Stratum || mode == OperationMode::Simulation)
+		else if (m_mode == OperationMode::Farm || m_mode == OperationMode::Stratum || m_mode == OperationMode::Simulation)
 			doMiner();
 	}
 
@@ -687,12 +725,13 @@ public:
 			<< "    --exit Stops the miner whenever an error is encountered" << endl
 			<< "    -SE, --stratum-email <s> Email address used in eth-proxy (optional)" << endl
 			<< "    --farm-recheck <n>  Leave n ms between checks for changed work (default: 500). When using stratum, use a high value (i.e. 2000) to get more stable hashrate output" << endl
-			<< "    -P URL Specify the URL of a pool endpoint. Can be specified once for the primary pool, then again for the failover pool." << endl
-			<< "        URL takes the form: scheme://hostname:port." << endl
+			<< "    -P URL Specify a pool URL. Can be used multiple times. The 1st for for the primary pool, and the 2nd for the failover pool." << endl
+			<< "        URL takes the form: scheme://user[:password]@hostname:port." << endl
 			<< "        for getwork use one of the following schemes:" << endl
 			<< "          " << URI::KnownSchemes(ProtocolFamily::GETWORK) << endl
 			<< "        for stratum use one of the following schemes: "<< endl
 			<< "          " << URI::KnownSchemes(ProtocolFamily::STRATUM) << endl
+			<< "        Example: stratum+ssl://0x012345678901234567890234567890123.miner1@ethermine.org:5555" << endl
 			<< endl
 			<< "Benchmarking mode:" << endl
 			<< "    -M [<n>],--benchmark [<n>] Benchmark for mining and exit; Optionally specify block number to benchmark against specific DAG." << endl
@@ -835,13 +874,13 @@ private:
 
 		PoolClient *client = nullptr;
 
-		if (mode == OperationMode::Stratum) {
+		if (m_mode == OperationMode::Stratum) {
 			client = new EthStratumClient(m_worktimeout, m_email, m_report_stratum_hashrate);
 		}
-		else if (mode == OperationMode::Farm) {
+		else if (m_mode == OperationMode::Farm) {
 			client = new EthGetworkClient(m_farmRecheckPeriod);
 		}
-		else if (mode == OperationMode::Simulation) {
+		else if (m_mode == OperationMode::Simulation) {
 			client = new SimulateClient(20, m_benchmarkBlock);
 		}
 		else {
@@ -900,7 +939,7 @@ private:
 	}
 
 	/// Operating mode.
-	OperationMode mode;
+	OperationMode m_mode = OperationMode::None;
 
 	/// Mining options
 	MinerType m_minerType = MinerType::Mixed;
