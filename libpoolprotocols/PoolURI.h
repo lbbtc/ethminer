@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <network/uri.hpp>
+#include <string>
 
 // A simple URI parser specifically for mining pool enpoints
 namespace dev
@@ -16,19 +16,18 @@ public:
 	URI();
 	URI(const std::string uri);
 
-	std::string Scheme() const;
-	std::string Host() const;
-	std::string Port() const;
-	std::string User() const;
-	std::string Pswd() const;
-	unsigned    ProtoVersion();
-	SecureLevel ProtoSecureLevel();
-	ProtocolFamily ProtoFamily();
+	std::string	Scheme() const;
+	std::string	Host() const;
+	std::string	Port() const;
+	std::string	User() const;
+	std::string	Pswd() const;
+	SecureLevel	ProtoSecureLevel();
+	ProtocolFamily	ProtoFamily();
+	unsigned	ProtoVersion();
 
-	bool KnownScheme();
+	bool		KnownScheme();
 
 	static std::string KnownSchemes(ProtocolFamily family);
-
 
 private:
 	network::uri   m_uri;

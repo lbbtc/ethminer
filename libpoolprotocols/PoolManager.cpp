@@ -25,7 +25,7 @@ PoolManager::PoolManager(PoolClient * client, Farm &farm, MinerType const & mine
 
 	p_client->onConnected([&]()
 	{
-		cnote << "Connected to " + m_connections[m_activeConnectionIdx].Host();
+		cnote << "Connected to " << m_connections[m_activeConnectionIdx].Host() + ':' + m_connections[m_activeConnectionIdx].Port();
 		if (!m_farm.isMining())
 		{
 			cnote << "Spinning up miners...";

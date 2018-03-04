@@ -92,7 +92,7 @@ public:
 		Stratum
 	};
 
-	MinerCLI(OperationMode _mode = OperationMode::None): mode(_mode) {}
+	MinerCLI(OperationMode _mode = OperationMode::None): mode(_mode) {m_endpoints.reserve(k_max_endpoints);}
 
 	static void signalHandler(int sig)
 	{
@@ -106,8 +106,7 @@ public:
 		if ((arg == "-F" || arg == "--farm") && i + 1 < argc)
 		{
 			mode = OperationMode::Farm;
-			m_farmURL = argv[++i];
-			m_activeFarmURL = m_farmURL;
+			m_endpoints[k_primary_ep_ix].Host(argv[++i]);
 		}
 		else if ((arg == "-FF" || arg == "-SF" || arg == "-FS" || arg == "--farm-failover" || arg == "--stratum-failover") && i + 1 < argc)
 		{
@@ -125,11 +124,11 @@ public:
 
 			if (uri.Host().length())
 			{
-				m_farmFailOverURL = uri.Host();
+				m_endpoints[k_secondary_ep_ix].Host(uri.Host());
 				if (mode == OperationMode::Stratum)
 				{
 					if (atoi(uri.Port().c_str()))
-						m_fport = uri.Port();
+						m_endpoints[k_secondary_ep_ix].Port(uri.Port());
 					else
 					{
 						cerr << "Bad endpoint address: " << url << endl;
@@ -180,8 +179,8 @@ public:
 
 			if (uri.Host().length() && atoi(uri.Port().c_str()))
 			{
-				m_farmURL = uri.Host();
-				m_port = uri.Port();
+				m_endpoints[k_primary_ep_ix].Host(uri.Host());
+				m_endpoints[k_primary_ep_ix].Port(uri.Port());
 			}
 			else
 			{
@@ -193,9 +192,9 @@ public:
 		{
 			string userpass = string(argv[++i]);
 			size_t p = userpass.find_first_of(":");
-			m_user = userpass.substr(0, p);
+			m_endpoints[k_primary_ep_ix].User(userpass.substr(0, p));
 			if (p + 1 <= userpass.length())
-				m_pass = userpass.substr(p+1);
+				m_endpoints[k_primary_ep_ix].Pass(userpass.substr(p+1));
 		}
 		else if ((arg == "-SC" || arg == "--stratum-client") && i + 1 < argc)
 		{
@@ -216,14 +215,16 @@ public:
 		else if (arg == "--stratum-ssl")
 		{
 			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
-			m_stratumSecure = SecureLevel::TLS12;
+			SecureLevel secLevel = SecureLevel::TLS12;
 			if ((i + 1 < argc) && (*argv[i + 1] != '-')) {
 				int secMode = atoi(argv[++i]);
 				if (secMode == 1)
-					m_stratumSecure = SecureLevel::TLS;
+					secLevel = SecureLevel::TLS;
 				if (secMode == 2)
-					m_stratumSecure = SecureLevel::ALLOW_SELFSIGNED;
+					secLevel = SecureLevel::ALLOW_SELFSIGNED;
 			}
+			m_endpoints[k_primary_ep_ix].SecLevel(secLevel);
+			m_endpoints[k_secondary_ep_ix].SecLevel(secLevel);
 				
 		}
 		else if ((arg == "-SE" || arg == "--stratum-email") && i + 1 < argc)
@@ -241,35 +242,35 @@ public:
 		{
 			string userpass = string(argv[++i]);
 			size_t p = userpass.find_first_of(":");
-			m_fuser = userpass.substr(0, p);
+			m_endpoints[k_secondary_ep_ix].User(userpass.substr(0, p));
 			if (p + 1 <= userpass.length())
-				m_fpass = userpass.substr(p + 1);
+				m_endpoints[k_secondary_ep_ix].Pass(userpass.substr(p + 1));
 		}
 		else if ((arg == "-u" || arg == "--user") && i + 1 < argc)
 		{
-			m_user = string(argv[++i]);
+			m_endpoints[k_primary_ep_ix].User(string(argv[++i]));
 		}
 		else if ((arg == "-p" || arg == "--pass") && i + 1 < argc)
 		{
-			m_pass = string(argv[++i]);
+			m_endpoints[k_primary_ep_ix].Pass(string(argv[++i]));
 		}
 		else if ((arg == "-o" || arg == "--port") && i + 1 < argc)
 		{
 			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
-			m_port = string(argv[++i]);
+			m_endpoints[k_primary_ep_ix].Port(string(argv[++i]));
 		}
 		else if ((arg == "-fu" || arg == "--failover-user") && i + 1 < argc)
 		{
-			m_fuser = string(argv[++i]);
+			m_endpoints[k_secondary_ep_ix].User(string(argv[++i]));
 		}
 		else if ((arg == "-fp" || arg == "--failover-pass") && i + 1 < argc)
 		{
-			m_fpass = string(argv[++i]);
+			m_endpoints[k_secondary_ep_ix].Pass(string(argv[++i]));
 		}
 		else if ((arg == "-fo" || arg == "--failover-port") && i + 1 < argc)
 		{
 			cerr << "Warning: " << arg << " is deprecated. Use the -P parameter instead." << endl;
-			m_fport = string(argv[++i]);
+			m_endpoints[k_secondary_ep_ix].Port(string(argv[++i]));
 		}
 		else if ((arg == "--work-timeout") && i + 1 < argc)
 		{
@@ -756,13 +757,20 @@ private:
 		genesis.setDifficulty(u256(1) << 64);
 
 		Farm f;
-		f.set_pool_addresses(m_farmURL, m_port, m_farmFailOverURL, m_fport);
+		f.set_pool_addresses(m_endpoints[k_primary_ep_ix].Host(),
+					m_endpoints[k_primary_ep_ix].Port(),
+					m_endpoints[k_secondary_ep_ix].Host(),
+					m_endpoints[k_secondary_ep_ix].Port());
 		map<string, Farm::SealerDescriptor> sealers;
 #if ETH_ETHASHCL
-		sealers["opencl"] = Farm::SealerDescriptor{&CLMiner::instances, [](FarmFace& _farm, unsigned _index){ return new CLMiner(_farm, _index); }};
+		sealers["opencl"] = Farm::SealerDescriptor{
+			&CLMiner::instances, [](FarmFace& _farm, unsigned _index){ return new CLMiner(_farm, _index); }
+		};
 #endif
 #if ETH_ETHASHCUDA
-		sealers["cuda"] = Farm::SealerDescriptor{ &CUDAMiner::instances, [](FarmFace& _farm, unsigned _index){ return new CUDAMiner(_farm, _index); } };
+		sealers["cuda"] = Farm::SealerDescriptor{
+			&CUDAMiner::instances, [](FarmFace& _farm, unsigned _index){ return new CUDAMiner(_farm, _index); }
+		};
 #endif
 		f.setSealers(sealers);
 		f.onSolutionFound([&](Solution) { return false; });
@@ -853,16 +861,15 @@ private:
 
 		PoolManager mgr(client, f, m_minerType);
 		mgr.setReconnectTries(m_maxFarmRetries);
-		PoolConnection conn(m_farmURL, m_port, m_user, m_pass, m_stratumSecure, m_stratumProtocol);
-		mgr.addConnection(conn);
-		if (!m_farmFailOverURL.empty()) {
-			if (!m_fuser.empty())
-				conn = PoolConnection(m_farmFailOverURL, m_fport, m_fuser, m_fpass, m_stratumSecure, m_stratumProtocol);
-			else
-				conn = PoolConnection(m_farmFailOverURL, m_fport, m_user, m_pass, m_stratumSecure, m_stratumProtocol);
-			mgr.addConnection(conn);
+		mgr.addConnection(m_endpoints[k_primary_ep_ix]);
+		if (!m_endpoints[k_secondary_ep_ix].Host().empty())
+		{
+			if (!m_endpoints[k_secondary_ep_ix].User().empty()) {
+				m_endpoints[k_secondary_ep_ix].User(m_endpoints[k_primary_ep_ix].User());
+				m_endpoints[k_secondary_ep_ix].Pass(m_endpoints[k_primary_ep_ix].Pass());
+			}
+			mgr.addConnection(m_endpoints[k_secondary_ep_ix]);
 		}
-
 
 #if API_CORE
 		Api api(this->m_api_port, f);
@@ -897,7 +904,6 @@ private:
 
 	/// Mining options
 	MinerType m_minerType = MinerType::Mixed;
-	SecureLevel m_stratumSecure = SecureLevel::NONE;
 	unsigned m_openclPlatform = 0;
 	unsigned m_miningThreads = UINT_MAX;
 	bool m_shouldListDevices = false;
@@ -927,12 +933,13 @@ private:
 	unsigned m_benchmarkTrial = 3;
 	unsigned m_benchmarkTrials = 5;
 	unsigned m_benchmarkBlock = 0;
-	/// Farm params
-	string m_farmURL = "http://127.0.0.1:8545";
-	string m_farmFailOverURL = "";
 
+	vector<PoolConnection> m_endpoints;
+	const unsigned k_max_endpoints = 6;
+	const unsigned k_primary_ep_ix = 0;
+	const unsigned k_secondary_ep_ix = 1;
+	unsigned m_ep_ix = 0;
 
-	string m_activeFarmURL = m_farmURL;
 	unsigned m_maxFarmRetries = 3;
 	unsigned m_farmRecheckPeriod = 500;
 	unsigned m_displayInterval = 5;
@@ -946,13 +953,7 @@ private:
 
 	bool m_report_stratum_hashrate = false;
 	EthStratumClient::StratumProtocol m_stratumProtocol = EthStratumClient::STRATUM;
-	string m_user;
-	string m_pass;
-	string m_port;
-	string m_fuser;
-	string m_fpass;
 	string m_email;
-	string m_fport;
 
 #if ETH_DBUS
 	DBusInt dbusint;

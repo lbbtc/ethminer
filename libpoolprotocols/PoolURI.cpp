@@ -3,15 +3,14 @@
 #include <libpoolprotocols/PoolURI.h>
 
 using namespace dev;
-using namespace std;
 
 typedef struct {
 	ProtocolFamily family;
 	SecureLevel secure;
 	unsigned version;
-} SchemeType;
+} SchemeAttributes;
 
-static map<string, SchemeType> s_schemes = {
+static std::map<std::string, SchemeAttributes> s_schemes = {
 	{"stratum+tcp",	{ProtocolFamily::STRATUM, SecureLevel::NONE,  0}},
 	{"stratum1+tcp",{ProtocolFamily::STRATUM, SecureLevel::NONE,  1}},
 	{"stratum2+tcp",{ProtocolFamily::STRATUM, SecureLevel::NONE,  2}},
@@ -28,22 +27,22 @@ static map<string, SchemeType> s_schemes = {
 
 // trim from start (in place)
 static inline void ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
-        return !std::isspace(ch);
-    }));
+	s.erase(s.begin(), find_if(s.begin(), s.end(), [](int ch) {
+		return !isspace(ch);
+	}));
 }
 
 // trim from end (in place)
 static inline void rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-        return !std::isspace(ch);
-    }).base(), s.end());
+	s.erase(find_if(s.rbegin(), s.rend(), [](int ch) {
+		return !isspace(ch);
+	}).base(), s.end());
 }
 
 // trim from both ends (in place)
 static inline void trim(std::string &s) {
-    ltrim(s);
-    rtrim(s);
+	ltrim(s);
+	rtrim(s);
 }
 
 URI::URI() {}
@@ -52,13 +51,13 @@ URI::URI(const std::string uri)
 {
 	std::string u = uri;
 	if (u.find("://") == std::string::npos)
-		u = std::string("notspecified://") + u;
+		u = std::string("unspecified://") + u;
 	m_uri = network::uri(u);
 }
 
 bool URI::KnownScheme()
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.scheme();
 	std::string s = ss.str();
 	trim(s);
@@ -67,7 +66,7 @@ bool URI::KnownScheme()
 
 ProtocolFamily URI::ProtoFamily()
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.scheme();
 	std::string s = ss.str();
 	trim(s);
@@ -76,7 +75,7 @@ ProtocolFamily URI::ProtoFamily()
 
 unsigned URI::ProtoVersion()
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.scheme();
 	std::string s = ss.str();
 	trim(s);
@@ -85,14 +84,14 @@ unsigned URI::ProtoVersion()
 
 SecureLevel URI::ProtoSecureLevel()
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.scheme();
 	std::string s = ss.str();
 	trim(s);
 	return s_schemes[s].secure;
 }
 
-string URI::KnownSchemes(ProtocolFamily family)
+std::string URI::KnownSchemes(ProtocolFamily family)
 {
 	std::string schemes;
 	for(const auto&s : s_schemes)
@@ -102,18 +101,18 @@ string URI::KnownSchemes(ProtocolFamily family)
 	return schemes;
 }
 
-string URI::Scheme() const
+std::string URI::Scheme() const
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.scheme();
 	std::string s(ss.str());
 	trim(s);
 	return s;
 }
 
-string URI::Host() const
+std::string URI::Host() const
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.host();
 	std::string s(ss.str());
 	trim(s);
@@ -122,9 +121,9 @@ string URI::Host() const
 	return s;
 }
 
-string URI::Port() const
+std::string URI::Port() const
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.port();
 	std::string s(ss.str());
 	trim(s);
@@ -133,9 +132,9 @@ string URI::Port() const
 	return s;
 }
 
-string URI::User() const
+std::string URI::User() const
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.user_info();
 	std::string s(ss.str());
 	trim(s);
@@ -147,9 +146,9 @@ string URI::User() const
 	return s.substr(0, f);
 }
 
-string URI::Pswd() const
+std::string URI::Pswd() const
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << m_uri.user_info();
 	std::string s(ss.str());
 	trim(s);
